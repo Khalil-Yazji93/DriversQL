@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "precomp.h": "c",
+        "stdarg.h": "c",
+        "STDARG.H": "cpp"
+    }
+}

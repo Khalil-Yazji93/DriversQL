@@ -1,0 +1,99 @@
+;
+; SI10.inf
+;
+
+[Version]
+Signature="$WINDOWS NT$"
+Class=Ultrasonic Sciences Devices
+ClassGuid={2FD18809-8BB3-452A-9716-E95536E8526E}
+Provider=%ManufacturerName%
+CatalogFile=SI10.cat
+DriverVer=
+PnpLockDown=1
+
+[DestinationDirs]
+DefaultDestDir = 12
+SI10_Device_CoInstaller_CopyFiles = 11
+
+[SourceDisksNames]
+1 = %DiskName%,,,""
+
+[SourceDisksFiles]
+SI10.sys  = 1,,
+WdfCoInstaller$KMDFCOINSTALLERVERSION$.dll=1 ; make sure the number matches with SourceDisksNames
+
+; ================= Class section =====================
+
+[ClassInstall32]
+Addreg=UltrasonicSciencesDeviceClassReg
+
+[UltrasonicSciencesDeviceClassReg]
+HKR,,,0,%ClassName%
+HKR,,Icon,,-5
+HKR,,DeviceCharacteristics,0x10001,0x100     ;Use same security checks on relative opens
+HKR,,Security,,"D:P(A;;GA;;;SY)(A;;GA;;;BA)(A;;GA;;;WD)" 
+
+;*****************************************
+; Install Section
+;*****************************************
+
+[Manufacturer]
+%ManufacturerName%=Standard,NT$ARCH$
+
+[Standard.NT$ARCH$]
+%SI10.DeviceDesc%=SI10_Device, PCI\VEN_10b5&DEV_9030
+
+[SI10_Device.NT]
+CopyFiles=Drivers_Dir
+
+[Drivers_Dir]
+SI10.sys
+
+[SI10_Device.NT.HW]
+AddReg=SI10_AddReg
+
+[SI10_AddReg]
+; By default, Ultrasonics class uses iProduct descriptor to name the device in
+; Device Manager on Windows 8 and higher.
+; Uncomment for this device to use %DeviceName% on Windows 8 and higher:
+HKR,,FriendlyName,,%SI10.DeviceDesc%
+
+;-------------- Service installation
+[SI10_Device.NT.Services]
+AddService = SI10,%SPSVCINST_ASSOCSERVICE%, SI10_Service_Inst
+
+; -------------- SI10 driver install sections
+[SI10_Service_Inst]
+DisplayName    = %SI10.SVCDESC%
+ServiceType    = 1               ; SERVICE_KERNEL_DRIVER
+StartType      = 3               ; SERVICE_DEMAND_START
+ErrorControl   = 1               ; SERVICE_ERROR_NORMAL
+ServiceBinary  = %12%\SI10.sys
+
+;
+;--- SI10_Device Coinstaller installation ------
+;
+
+[SI10_Device.NT.CoInstallers]
+AddReg=SI10_Device_CoInstaller_AddReg
+CopyFiles=SI10_Device_CoInstaller_CopyFiles
+
+[SI10_Device_CoInstaller_AddReg]
+HKR,,CoInstallers32,0x00010000, "WdfCoInstaller$KMDFCOINSTALLERVERSION$.dll,WdfCoInstaller"
+
+[SI10_Device_CoInstaller_CopyFiles]
+WdfCoInstaller$KMDFCOINSTALLERVERSION$.dll
+
+[SI10_Device.NT.Wdf]
+KmdfService =  SI10, SI10_wdfsect
+[SI10_wdfsect]
+KmdfLibraryVersion = $KMDFVERSION$
+
+[Strings]
+SPSVCINST_ASSOCSERVICE= 0x00000002
+ManufacturerName="Ultrasonic Sciences Ltd"
+ClassName="Ultrasonic Sciences Devices"
+DiskName = "SI10 Installation Disk"
+SI10.DeviceDesc = "SI10 Device"
+SI10.SVCDESC = "SI10 Service"
+REG_MULTI_SZ = 0x00010000

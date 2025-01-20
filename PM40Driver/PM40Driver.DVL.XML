@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?> 
+<Data> 
+<AssessmentScore ScoreName="PM40Driver.x64.SDV.NORUN" ScoreValue="0" ScoreUnit="" />
+
+<AssessmentScore ScoreName="PM40Driver.x64.CodeAnalysis.NORUN" ScoreValue="0" ScoreUnit="" />
+
+<AssessmentScore ScoreName="PM40Driver.x64.Semmle.NORUN" ScoreValue="0" ScoreUnit="" />
+
+<AssessmentScore ScoreName="..General.Checksum" ScoreValue="dDa4GMk9Fy71VssTj6yHI5eU3Gp2dyt1PHf/0K0b1ZK5MltWf5F5CD6pjDugkEWvgCTOhzZbgVKe0LczAqg8Ww==" ScoreUnit="DVL Checksum Value" />
+</Data>

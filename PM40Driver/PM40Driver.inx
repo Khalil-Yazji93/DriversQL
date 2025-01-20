@@ -1,0 +1,167 @@
+;/*
+; * PM40Driver.inx
+; *
+; * Copyright (c) 2019Ultrasonic Sciences Ltd
+; *
+; * This is the base file for the DMA Backend driver inf file.
+; *
+; */
+
+[Version]
+Signature="$WINDOWS NT$"
+Class=Ultrasonics
+ClassGuid={78A1C341-4539-11d3-B88D-00C04FAD5171}
+Provider=%USL%
+DriverVer=
+CatalogFile.NTx86  = pm40x86.cat
+CatalogFile.NTAMD64 = pm40x86.cat
+DriverPackageType=PlugAndPlay
+DriverPackageDisplayName=%ClassName%
+
+; ================= Class section =====================
+
+[ClassInstall32]
+Addreg=SampleClassReg
+
+[SampleClassReg]
+HKR,,,0,%ClassName%
+HKR,,Icon,,-5
+HKR,,DeviceCharacteristics,0x10001,0x100     ;Use same security checks on relative opens
+HKR,,Security,,"D:P(A;;GA;;;SY)(A;;GA;;;BA)" ;Allow generic all access to system and built-in Admin. 
+
+
+[DestinationDirs]
+DefaultDestDir = 12
+CoInstaller_CopyFiles = 11
+
+[Manufacturer]
+%USL%=NWL,NTx86.6.0,NTamd64.6.0,NTx86.5.1,NTamd64.5.1
+
+[SourceDisksFiles]
+PM40Driver.sys=1
+wdfcoinstaller01009.dll=1
+
+[SourceDisksNames]
+1=%DISK_NAME%,
+
+[NWL.NTx86.5.1]
+
+; PCI hardware IDs use the form
+;   PCI\VEN_aaaa&DEV_bbbb&SUBSYS_cccccccc&REV_dd
+;
+%DeviceDesc%=DMABackendXP_DDI.NT, PCI\VEN_19AA&DEV_E004
+
+[NWL.NTamd64.5.1]
+
+; PCI hardware IDs use the form
+;   PCI\VEN_aaaa&DEV_bbbb&SUBSYS_cccccccc&REV_dd
+;
+%DeviceDesc%=DMABackendXP_DDI.NT, PCI\VEN_19AA&DEV_E004
+
+[NWL.NTx86.6.0]
+
+; PCI hardware IDs use the form
+;   PCI\VEN_aaaa&DEV_bbbb&SUBSYS_cccccccc&REV_dd
+;
+%DeviceDesc%=DMABackend_DDI.NT, PCI\VEN_19AA&DEV_E004
+
+[NWL.NTamd64.6.0]
+
+; PCI hardware IDs use the form
+;   PCI\VEN_aaaa&DEV_bbbb&SUBSYS_cccccccc&REV_dd
+;
+%DeviceDesc%=DMABackend_DDI.NT, PCI\VEN_19AA&DEV_E004
+
+
+;---------- DDInstall Sections -----------------------------------------------
+; --------- Windows XP Only -----------------
+
+[DMABackendXP_DDI.NT]
+CopyFiles=DMABackend_Files_Driver
+
+[DMABackendXP_DDI.NT.Services]
+Addservice = DMABackend, 0x00000002, DMABackend_AddService
+
+; --------- Disable MSI support -----------------
+[DMABackendXP_DDI.NT.HW]
+AddReg = DMABackendNoMSI_AddReg
+
+[DMABackendNoMSI_AddReg]
+HKR, Interrupt Management,, 0x00000010
+HKR, Interrupt Management\MessageSignaledInterruptProperties,, 0x00000010
+HKR, Interrupt Management\MessageSignaledInterruptProperties, MSISupported, 0x00010001, 0
+HKR, Interrupt Management\MessageSignaledInterruptProperties, MessageNumberLimit, 0x00010001, 1
+HKR, Interrupt Management\Affinity Policy, DevicePriority, 0x00010001, 3
+
+; --------- Windows Vista and Later -----------------
+
+[DMABackend_DDI.NT]
+CopyFiles=DMABackend_Files_Driver
+
+[DMABackend_DDI.NT.Services]
+Addservice = DMABackend, 0x00000002, DMABackend_AddService
+
+[DMABackend_AddService]
+DisplayName    = %SvcDesc%
+ServiceType    = 1                  ; SERVICE_KERNEL_DRIVER
+StartType      = 3                  ; SERVICE_DEMAND_START
+ErrorControl   = 1                  ; SERVICE_ERROR_NORMAL
+ServiceBinary  = %10%\System32\Drivers\PM40Driver.sys
+AddReg=DMABackend_Parameters_AddReg
+
+[DMABackend_Parameters_AddReg]
+HKR, Parameters\Wdf, VerboseOn,       0x00010001, 0
+HKR, Parameters\Wdf, VerifierOn,      0x00010001, 0
+HKR, Parameters\Wdf, DbgBreakOnError, 0x00010001, 0
+
+; --------- Enable MSI support -----------------
+
+[DMABackend_DDI.NT.HW]
+AddReg = DMABackendMSI_AddReg
+
+[DMABackendMSI_AddReg]
+HKR, Interrupt Management,, 0x00000010
+HKR, Interrupt Management\MessageSignaledInterruptProperties,, 0x00000010
+HKR, Interrupt Management\MessageSignaledInterruptProperties, MSISupported, 0x00010001, 1
+HKR, Interrupt Management\MessageSignaledInterruptProperties, MessageNumberLimit, 0x00010001, 32
+HKR, Interrupt Management\Affinity Policy, DevicePriority, 0x00010001, 3
+
+; --------- Files (common) -------------
+
+[DMABackend_Files_Driver]
+PM40Driver.sys
+
+; --------- Coinstaller Section
+
+[DMABackendXP_DDI.NT.CoInstallers]
+AddReg=CoInstaller_AddReg
+CopyFiles=CoInstaller_CopyFiles
+
+[DMABackend_DDI.NT.CoInstallers]
+AddReg=CoInstaller_AddReg
+CopyFiles=CoInstaller_CopyFiles
+
+[CoInstaller_CopyFiles]
+WdfCoInstaller$KMDFCOINSTALLERVERSION$.dll
+
+[CoInstaller_AddReg]
+HKR,,CoInstallers32,0x00010000, "WdfCoInstaller$KMDFCOINSTALLERVERSION$.dll,WdfCoInstaller"
+
+[DMABackendXP_DDI.NT.Wdf]
+KmdfService = DMABackend, DMABackend_wdfsect
+
+[DMABackend_DDI.NT.Wdf]
+KmdfService = DMABackend, DMABackend_wdfsect
+
+[DMABackend_wdfsect]
+KmdfLibraryVersion = 1.7
+
+
+;--------- Strings Section ---------------------------------------------------
+
+[Strings]
+USL = "Ultrasonic Sciences Limited"
+ClassName = "Ultrasonics"
+DeviceDesc = "PM40 Device"
+DISK_NAME = "PCI Express PM40 Driver Install Disk"
+SvcDesc   = "PCI Express PM40 Driver"
