@@ -93,8 +93,6 @@ jobs:
     - name: Setup MSBuild
       uses: microsoft/setup-msbuild@v1  # ✅ Ensures MSBuild is available
 
-    - name: Restore NuGet Packages (if needed)
-      run: nuget restore Drivers.sln
 
     - name: Build Solution with MSBuild
       run: msbuild Drivers.sln /t:PM40Driver /p:Configuration=Release /p:Platform=x64 /m
