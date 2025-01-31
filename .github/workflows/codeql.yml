@@ -59,12 +59,12 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
       
-    - name: Setup Windows Driver Kit (WDK)
+    - name: Install Windows SDK and WDK via Visual Studio Installer
       run: |
-        choco install windows-sdk-10-version-2004-all -y
-        choco install windows-driver-kit -y
+        choco install visualstudio2022buildtools -y
+        "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vs_installer.exe" modify --installPath "C:\Program Files\Microsoft Visual Studio\2022\BuildTools" --add Microsoft.VisualStudio.Workload.WindowsDriverDevelopment --quiet --wait
 
-    - name: Check WDK Installation
+    - name: Verify WDK Installation
       run: |
         dir "C:\Program Files (x86)\Windows Kits\10\bin\x86"
 
@@ -72,6 +72,11 @@ jobs:
       run: |
         echo "C:\Program Files (x86)\Windows Kits\10\bin\x86" | Out-File -Append -FilePath $env:GITHUB_PATH
 
+    - name: Copy Missing InfVerif.dll (if needed)
+      run: |
+        if (!(Test-Path "D:\a\DriversQL\DriversQL\PM40Driver\x86\InfVerif.dll")) {
+          Copy-Item "C:\Program Files (x86)\Windows Kits\10\bin\x86\InfVerif.dll" "D:\a\DriversQL\DriversQL\PM40Driver\x86\InfVerif.dll"
+        }
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v3
