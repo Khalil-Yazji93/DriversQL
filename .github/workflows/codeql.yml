@@ -71,12 +71,6 @@ jobs:
     - name: Set WDK Path
       run: |
         echo "C:\Program Files (x86)\Windows Kits\10\bin\x86" | Out-File -Append -FilePath $env:GITHUB_PATH
-
-    - name: Copy Missing InfVerif.dll (if needed)
-      run: |
-        if (!(Test-Path "D:\a\DriversQL\DriversQL\PM40Driver\x86\InfVerif.dll")) {
-          Copy-Item "C:\Program Files (x86)\Windows Kits\10\bin\x86\InfVerif.dll" "D:\a\DriversQL\DriversQL\PM40Driver\x86\InfVerif.dll"
-        }
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v3
