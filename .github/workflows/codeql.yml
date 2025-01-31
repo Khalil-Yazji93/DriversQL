@@ -58,6 +58,19 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
+      
+    - name: Setup Windows Driver Kit (WDK)
+      run: |
+        choco install windows-sdk-10-version-2004-all -y
+        choco install windows-driver-kit -y
+
+    - name: Check WDK Installation
+      run: |
+        dir "C:\Program Files (x86)\Windows Kits\10\bin\x86"
+
+    - name: Set WDK Path
+      run: |
+        echo "C:\Program Files (x86)\Windows Kits\10\bin\x86" | Out-File -Append -FilePath $env:GITHUB_PATH
 
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL
@@ -90,23 +103,17 @@ jobs:
     - name: Create CodeQL Database
       run: |
         & "C:\hostedtoolcache\windows\CodeQL\2.20.3\x64\codeql\codeql.exe" database create codeql-database `
-        --language=cpp `
-        --source-root=. `
-        --command="msbuild Drivers.sln /t:PM40Driver /p:Configuration=Release /p:Platform=x64"
+          --language=cpp `
+          --source-root=. `
+          --command="C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\MSBuild\Current\Bin\MSBuild.exe Drivers.sln /p:Configuration=Release /p:Platform=x64" `
+          --verbose
 
+    - name: Analyze with CodeQL
+      uses: github/codeql-action/analyze@v3
 
-    - name: Perform CodeQL Database Extraction
-      run: |
-          $CODEQL_PATH="${{ env.CODEQL_DIST }}\codeql.exe"
-          echo "CodeQL found at: $CODEQL_PATH"
-          & $CODEQL_PATH database trace-command codeql-database -- msbuild Drivers.sln /p:Configuration=Release /p:Platform=x64
-
-
-    - name: Debug List CodeQL Database Contents
-      run: dir ${{ github.workspace }}/codeql-database/cpp /s
-
-    - name: Upload CodeQL Logs
-      uses: actions/upload-artifact@v4
+    - name: Upload CodeQL Logs (for debugging)
+      if: failure()
+      uses: actions/upload-artifact@v3
       with:
-          name: codeql-logs
-          path: ${{ github.workspace }}/codeql-database/cpp/log
+        name: codeql-logs
+        path: D:\a\DriversQL\DriversQL\codeql-database\log
