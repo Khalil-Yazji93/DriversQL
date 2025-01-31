@@ -89,9 +89,11 @@ jobs:
 
     - name: Create CodeQL Database
       run: |
-          $CODEQL_PATH="${{ env.CODEQL_DIST }}\codeql.exe"
-          echo "CodeQL found at: $CODEQL_PATH"
-          & $CODEQL_PATH database create codeql-database --language=cpp
+        & "C:\hostedtoolcache\windows\CodeQL\2.20.3\x64\codeql\codeql.exe" database create codeql-database `
+        --language=cpp `
+        --source-root=. `
+        --command="msbuild Drivers.sln /t:PM40Driver /p:Configuration=Release /p:Platform=x64"
+
 
     - name: Perform CodeQL Database Extraction
       run: |
