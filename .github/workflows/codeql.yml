@@ -85,7 +85,7 @@ jobs:
       run: nuget restore Drivers.sln
 
     - name: Build Solution with MSBuild
-      run: msbuild Drivers.sln /t:PM40Driver /p:Configuration=Release /p:Platform=x64/m
+      run: msbuild Drivers.sln /t:PM40Driver /p:Configuration=Release /p:Platform=x64 /m
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3
