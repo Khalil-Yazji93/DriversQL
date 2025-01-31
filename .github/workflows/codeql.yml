@@ -87,11 +87,18 @@ jobs:
     - name: Build Solution with MSBuild
       run: msbuild Drivers.sln /t:PM40Driver /p:Configuration=Release /p:Platform=x64 /m
 
+    - name: Create CodeQL Database
+      run: |
+          $CODEQL_PATH="${{ env.CODEQL_DIST }}\codeql.exe"
+          echo "CodeQL found at: $CODEQL_PATH"
+          & $CODEQL_PATH database create codeql-database --language=cpp
+
     - name: Perform CodeQL Database Extraction
       run: |
           $CODEQL_PATH="${{ env.CODEQL_DIST }}\codeql.exe"
           echo "CodeQL found at: $CODEQL_PATH"
           & $CODEQL_PATH database trace-command codeql-database -- msbuild Drivers.sln /p:Configuration=Release /p:Platform=x64
+
 
     - name: Debug List CodeQL Database Contents
       run: dir ${{ github.workspace }}/codeql-database/cpp /s
