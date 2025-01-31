@@ -89,9 +89,9 @@ jobs:
 
     - name: Perform CodeQL Database Extraction
       run: |
-          $CODEQL_PATH=$(where codeql)
+          $CODEQL_PATH="${{ env.CODEQL_DIST }}\codeql.exe"
           echo "CodeQL found at: $CODEQL_PATH"
-          codeql database trace-command codeql-database -- msbuild Drivers.sln /p:Configuration=Release /p:Platform=x64
+          & $CODEQL_PATH database trace-command codeql-database -- msbuild Drivers.sln /p:Configuration=Release /p:Platform=x64
 
     - name: Debug List CodeQL Database Contents
       run: dir ${{ github.workspace }}/codeql-database/cpp /s
