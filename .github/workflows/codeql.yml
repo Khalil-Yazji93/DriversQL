@@ -87,13 +87,17 @@ jobs:
     - name: Build Solution with MSBuild
       run: msbuild Drivers.sln /t:PM40Driver /p:Configuration=Release /p:Platform=x64 /m
 
-    - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v3
-      with:
-        category: "/language:${{matrix.language}}"
+    - name: Perform CodeQL Database Extraction
+      run: |
+          $CODEQL_PATH=$(where codeql)
+          echo "CodeQL found at: $CODEQL_PATH"
+          codeql database trace-command codeql-database -- msbuild Drivers.sln /p:Configuration=Release /p:Platform=x64
+
+    - name: Debug List CodeQL Database Contents
+      run: dir ${{ github.workspace }}/codeql-database/cpp /s
 
     - name: Upload CodeQL Logs
       uses: actions/upload-artifact@v4
       with:
           name: codeql-logs
-          path: ${{ github.workspace }}/codeql-database/log
+          path: ${{ github.workspace }}/codeql-database/cpp/log
