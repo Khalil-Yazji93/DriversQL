@@ -62,7 +62,7 @@ jobs:
     - name: Install Windows SDK and WDK via Visual Studio Installer
       run: |
         choco install visualstudio2022buildtools -y
-        Start-Process "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vs_installer.exe" -ArgumentList "modify", "--installPath", "C:\Program Files\Microsoft Visual Studio\2022\BuildTools", "--add", "Microsoft.VisualStudio.Workload.WindowsDriverDevelopment", "--quiet", "--wait" -NoNewWindow -Wait
+        Start-Process "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vs_installer.exe" -ArgumentList "modify", "--installPath", "C:\Program Files\Microsoft Visual Studio\2022\BuildTools", "--add", "Microsoft.VisualStudio.Workload.WindowsDriverDevelopment", "--add", "Microsoft.VisualStudio.Component.VC.Tools.x86.x64", "--add", "Microsoft.VisualStudio.Component.VC.CMake.Project", "--add", "Microsoft.VisualStudio.Component.VC.LLVM.ClangToolset", "--quiet", "--wait" -NoNewWindow -Wait
 
     - name: Verify WDK Installation
       run: |
