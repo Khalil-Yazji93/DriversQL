@@ -61,7 +61,7 @@ jobs:
         & "C:\hostedtoolcache\windows\CodeQL\2.20.3\x64\codeql\codeql.exe" database create codeql-database `
           --language=cpp `
           --source-root=. `
-          --command="$env:MSBUILD_PATH Drivers.sln /p:Configuration=Release /p:Platform=x64" `
+          --command="`"$env:MSBUILD_PATH`" Drivers.sln /p:Configuration=Release /p:Platform=x64" `
           --verbose
 
     - name: Analyze with CodeQL
