@@ -98,11 +98,7 @@ jobs:
     # to build your code.
     # ℹ️ Command-line programs to run using the OS shell.
     # 📚 See https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idstepsrun
-    - name: Setup MSBuild
-      uses: microsoft/setup-msbuild@v1
-      with:
-        vs-version: '2022'
-        msbuild-architecture: 'x64'
+
 
     - name: Build Solution with MSBuild
       run: msbuild Drivers.sln /t:PM40Driver /p:Configuration=Release /p:Platform=x64 /m
