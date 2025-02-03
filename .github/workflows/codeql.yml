@@ -33,7 +33,7 @@ jobs:
 
     - name: Install Visual Studio Dependencies
       run: |
-        choco install microsoft-visualstudio-2022-enterprise --version=17.12.12 --package-parameters "--add Microsoft.VisualStudio.Component.Windows10SDK.19041"
+        choco install microsoft-visualstudio-2022-enterprise --package-parameters "--add Microsoft.VisualStudio.Component.Windows10SDK.19041"
 
     - name: Install Missing DLLs for INF Verification
       run: |
