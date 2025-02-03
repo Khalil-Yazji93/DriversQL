@@ -31,10 +31,13 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-
-    - name: Install Missing DLLs for INF Verification
+    # Install Windows 10 SDK directly from Microsoft
+    - name: Install Windows 10 SDK
       run: |
-        choco install windows-sdk-10 --pre
+        $sdkInstaller = "https://download.microsoft.com/download/2/8/4/2848C5A3-34D3-4F3D-B2B8-F24F72A83950/standalonesdk/sdksetup.exe"
+        $installerPath = "$env:TEMP\sdksetup.exe"
+        Invoke-WebRequest -Uri $sdkInstaller -OutFile $installerPath
+        Start-Process -FilePath $installerPath -ArgumentList "/quiet", "/norestart" -Wait
 
     - name: Verify Visual Studio Installation
       run: |
