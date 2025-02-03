@@ -42,6 +42,15 @@ jobs:
           exit 1
         }
 
+    - name: Install Windows Driver Kit and SDK Components
+      run: |
+        choco install windows-driver-kit -y
+        & "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vs_installer.exe" modify --installPath "C:\Program Files\Microsoft Visual Studio\2022\Enterprise" --add Microsoft.VisualStudio.Component.Windows10SDK.26100 --add Microsoft.VisualStudio.Component.Windows10SDK.DllTools --add Microsoft.VisualStudio.Component.WindowsDriverKit --includeRecommended --quiet --norestart
+
+    - name: Add Windows SDK tools to PATH
+      run: |
+        $env:Path += ";C:\Program Files (x86)\Windows Kits\10\bin\10.0.26100.0\x86"
+
     - name: Verify Visual Studio Installation
       run: |
         & "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" -all -prerelease -products * -format json
