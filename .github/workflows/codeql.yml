@@ -33,10 +33,18 @@ jobs:
 
     - name: Install Visual Studio 2022 Enterprise and SDK
       run: |
-        $installerPath = "https://aka.ms/vs/17/release/vs_installer.exe"
-        Invoke-WebRequest -Uri $installerPath -OutFile "vs_installer.exe"
-        Start-Process "vs_installer.exe" -ArgumentList "--quiet", "--wait", "--add Microsoft.VisualStudio.Component.Windows10SDK.19041", "--includeRecommended", "--path cache" -NoNewWindow -Wait
-        Remove-Item "vs_installer.exe"
+        # Download the installer
+        $installerPath = "vs_installer.exe"
+        Invoke-WebRequest -Uri "https://aka.ms/vs/17/release/vs_installer.exe" -OutFile $installerPath
+    
+        # Set the execution policy temporarily to allow script execution
+        Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force
+    
+        # Start the Visual Studio Installer
+        Start-Process -FilePath $installerPath -ArgumentList "--quiet", "--wait", "--add Microsoft.VisualStudio.Component.Windows10SDK.19041", "--includeRecommended", "--path cache" -NoNewWindow -Wait
+    
+        # Clean up the installer after installation
+        Remove-Item -Path $installerPath -Force
 
     - name: Install Missing DLLs for INF Verification
       run: |
