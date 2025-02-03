@@ -43,14 +43,15 @@ jobs:
         }
 
     - name: Install Windows SDK and Driver Kit
-      run: |
-        vs_installer_path="C:\Program Files (x86)\Microsoft Visual Studio\Installer\vs_installer.exe"
-        if (Test-Path $vs_installer_path) {
-          & "$vs_installer_path" modify --add Microsoft.VisualStudio.Component.Windows10SDK.19041 \
-                                        --add Microsoft.VisualStudio.Component.WDK \
-                                        --quiet --wait --norestart
-        }
       shell: pwsh
+      run: |
+        $vsInstallerPath = "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vs_installer.exe"
+        if (Test-Path $vsInstallerPath) {
+          Start-Process -FilePath $vsInstallerPath -ArgumentList "modify", "--add", "Microsoft.VisualStudio.Component.Windows10SDK.19041", "--add", "Microsoft.VisualStudio.Component.WDK", "--quiet", "--wait", "--norestart" -NoNewWindow -Wait
+        } else {
+          Write-Error "Visual Studio Installer not found at $vsInstallerPath"
+        }
+
    
     - name: Add Windows SDK tools to PATH
       run: |
