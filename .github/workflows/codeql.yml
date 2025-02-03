@@ -1,75 +1,85 @@
-name: "CodeQL Advanced"
+name: CodeQL Analysis
 
 on:
   push:
-    branches: [ "master" ]
+    branches:
+      - main
   pull_request:
-    branches: [ "master" ]
-  schedule:
-    - cron: '36 9 * * 0'
+    branches:
+      - main
 
 jobs:
-  analyze:
-    name: Analyze (${{ matrix.language }})
+  build:
     runs-on: windows-latest
-    permissions:
-      security-events: write
-      packages: read
-      actions: read
-      contents: read
-
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-        - language: c-cpp
-          build-mode: manual
-        - language: csharp
-          build-mode: none
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-    - name: Verify Visual Studio Installation
-      run: |
-        & "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" -all -prerelease -products * -format json
+      - name: Set up MSBuild environment
+        uses: microsoft/setup-msbuild@v1.0.3
 
-    - name: Locate MSBuild
-      id: locate-msbuild
-      run: |
-        $msbuildPath = & "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -requires Microsoft.Component.MSBuild -find "MSBuild\\**\\Bin\\MSBuild.exe"
-        echo "MSBUILD_PATH=$msbuildPath" | Out-File -Append -FilePath $env:GITHUB_ENV
+      - name: Set up CodeQL
+        uses: github/codeql-action/setup-codeql@v2
 
-    - name: Verify MSBuild Path
-      run: |
-        echo $env:MSBUILD_PATH
-        & $env:MSBUILD_PATH /version
-
-    - name: Initialize CodeQL
-      uses: github/codeql-action/init@v3
-      with:
-        languages: ${{ matrix.language }}
-        build-mode: ${{ matrix.build-mode }}
-
-    - name: Build Solution with MSBuild
-      run: |
-        & $env:MSBUILD_PATH Drivers.sln /t:PM40Driver /t:PM40DriverDLL /p:Configuration=Release /p:Platform=x64 /m
-
-    - name: Create CodeQL Database
-      run: |
-        & "C:\hostedtoolcache\windows\CodeQL\2.20.3\x64\codeql\codeql.exe" database create codeql-database `
+      - name: Create CodeQL database
+        run: |
+          & "C:\hostedtoolcache\windows\CodeQL\2.20.3\x64\codeql\codeql.exe" database create codeql-database `
           --language=cpp `
-          --source-root=. `
-          --command="`"$env:MSBUILD_PATH`" Drivers.sln /t:PM40Driver /t:PM40DriverDLL /p:Configuration=Release /p:Platform=x64" `
-          --verbose
+          --language=csharp `
+          --source-root=D:\a\DriversQL\DriversQL
+        continue-on-error: false
 
-    - name: Analyze with CodeQL
-      uses: github/codeql-action/analyze@v3
+      - name: Run CodeQL analysis for C++ and C#
+        run: |
+          & "C:\hostedtoolcache\windows\CodeQL\2.20.3\x64\codeql\codeql.exe" analyze codeql-database `
+          --format=sarif-latest `
+          --output=codeql-sarif.sarif
+        continue-on-error: false
 
-    - name: Upload CodeQL Logs (for debugging)
-      if: failure()
-      uses: actions/upload-artifact@v4
-      with:
-        name: codeql-logs
-        path: D:\a\DriversQL\DriversQL\codeql-database\log
+      - name: Upload CodeQL results
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: codeql-sarif.sarif
+          
+      - name: Install Visual Studio Dependencies (If Necessary)
+        run: |
+          choco install microsoft-visualstudio-2022-enterprise --version=17.12.12 --package-parameters "--add Microsoft.VisualStudio.Component.Windows10SDK.19041"
+          
+      - name: Install Missing DLLs for INF Verification
+        run: |
+          # Ensure InfVerif.dll and related files are installed correctly
+          choco install windows-sdk-10 --version=10.0.19041.1
+
+      - name: Build with MSBuild (PM40Driver & PM40DriverDLL)
+        run: |
+          & "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\MSBuild\Current\Bin\MSBuild.exe" `
+          "D:\a\DriversQL\DriversQL\Drivers.sln" `
+          /t:PM40Driver `
+          /t:PM40DriverDLL `
+          /p:Configuration=Release `
+          /p:Platform=x64
+          
+      - name: Sign Driver
+        run: |
+          & "C:\Program Files (x86)\Windows Kits\10\bin\10.0.26100.0\x86\signtool.exe" sign /ph /fd "sha256" `
+          /sha1 "0468F37E2001F166F813843B7D84C4011C9FBBCF" `
+          "D:\a\DriversQL\DriversQL\x64\Release\PM40Driver.sys"
+
+      - name: Validate and Package Driver
+        run: |
+          & "C:\Program Files (x86)\Windows Kits\10\bin\10.0.26100.0\x86\inf2cat.exe" `
+          /os:10_x64 `
+          /driver:"D:\a\DriversQL\DriversQL\x64\Release\PM40Driver"
+
+          & "C:\Program Files (x86)\Windows Kits\10\bin\10.0.26100.0\x86\signtool.exe" sign `
+          /ph `
+          /fd "sha256" `
+          /sha1 "0468F37E2001F166F813843B7D84C4011C9FBBCF" `
+          "D:\a\DriversQL\DriversQL\x64\Release\PM40Driver\pm40driver.cat"
+
+      - name: Upload the Signed Driver
+        uses: actions/upload-artifact@v3
+        with:
+          name: signed-driver
+          path: D:\a\DriversQL\DriversQL\x64\Release\PM40Driver\pm40driver.cat
