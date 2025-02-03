@@ -79,7 +79,7 @@ jobs:
           "D:\a\DriversQL\DriversQL\x64\Release\PM40Driver\pm40driver.cat"
 
       - name: Upload the Signed Driver
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: signed-driver
           path: D:\a\DriversQL\DriversQL\x64\Release\PM40Driver\pm40driver.cat
