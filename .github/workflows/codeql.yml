@@ -31,38 +31,6 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Install Visual Studio 2022 Enterprise and SDK
-      run: |
-        # Define download and installation directories
-        $installDir = "$env:TEMP\vs_installer"
-        $installerPath = "$installDir\vs_installer.exe"
-    
-        # Create installation directory if it doesn't exist
-        if (-not (Test-Path -Path $installDir)) {
-            New-Item -ItemType Directory -Path $installDir
-        }
-    
-        # Download the installer
-        Write-Host "Downloading Visual Studio Installer..."
-        Invoke-WebRequest -Uri "https://aka.ms/vs/17/release/vs_installer.exe" -OutFile $installerPath
-    
-        # Check if the installer was downloaded successfully
-        if (-not (Test-Path -Path $installerPath)) {
-            Write-Host "Installer was not downloaded correctly."
-            exit 1
-        }
-    
-        # Set the execution policy temporarily to allow script execution
-        Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force
-    
-        # Start the Visual Studio Installer
-        Write-Host "Starting Visual Studio Installer..."
-        Start-Process -FilePath $installerPath -ArgumentList "--quiet", "--wait", "--add Microsoft.VisualStudio.Component.Windows10SDK.19041", "--includeRecommended", "--path cache" -NoNewWindow -Wait
-    
-        # Clean up the installer after installation
-        Write-Host "Cleaning up installer..."
-        Remove-Item -Path $installerPath -Force
-
 
     - name: Install Missing DLLs for INF Verification
       run: |
