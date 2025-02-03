@@ -31,9 +31,12 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Install Visual Studio Dependencies
+    - name: Install Visual Studio 2022 Enterprise and SDK
       run: |
-        choco install microsoft-visualstudio-2022-enterprise --package-parameters "--add Microsoft.VisualStudio.Component.Windows10SDK.19041"
+        $installerPath = "https://aka.ms/vs/17/release/vs_installer.exe"
+        Invoke-WebRequest -Uri $installerPath -OutFile "vs_installer.exe"
+        Start-Process "vs_installer.exe" -ArgumentList "--quiet", "--wait", "--add Microsoft.VisualStudio.Component.Windows10SDK.19041", "--includeRecommended", "--path cache" -NoNewWindow -Wait
+        Remove-Item "vs_installer.exe"
 
     - name: Install Missing DLLs for INF Verification
       run: |
