@@ -102,6 +102,7 @@ jobs:
       uses: microsoft/setup-msbuild@v1
       with:
         vs-version: '2022'
+        msbuild-architecture: 'x64'
 
     - name: Build Solution with MSBuild
       run: msbuild Drivers.sln /t:PM40Driver /p:Configuration=Release /p:Platform=x64 /m
