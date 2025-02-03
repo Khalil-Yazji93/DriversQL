@@ -31,35 +31,20 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Install Windows SDK and WDK via Visual Studio Installer
-      run: |
-        choco install visualstudio2022buildtools -y
-        & "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vs_installer.exe" modify --installPath "C:\Program Files\Microsoft Visual Studio\2022\BuildTools" `
-          --add Microsoft.VisualStudio.Workload.VCTools `
-          --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 `
-          --add Microsoft.VisualStudio.Component.VC.ATL `
-          --add Microsoft.VisualStudio.Component.VC.CMake.Project `
-          --add Microsoft.VisualStudio.Component.VC.Llvm.Clang `
-          --add Microsoft.VisualStudio.Component.Windows10SDK.19041 `
-          --add Microsoft.VisualStudio.Workload.WindowsDriverDevelopment `
-          --add Microsoft.Component.MSBuild `
-          --quiet --wait
-
     - name: Verify Visual Studio Installation
       run: |
         & "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" -all -prerelease -products * -format json
 
-    - name: Verify MSBuild Tools
+    - name: Locate MSBuild
+      id: locate-msbuild
       run: |
-        Get-ChildItem "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\MSBuild\Current\Bin" -Recurse | ForEach-Object { dir $_.FullName }
+        $msbuildPath = & "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -requires Microsoft.Component.MSBuild -find "MSBuild\\**\\Bin\\MSBuild.exe"
+        echo "MSBUILD_PATH=$msbuildPath" | Out-File -Append -FilePath $env:GITHUB_ENV
 
-    - name: Verify WDK Installation
+    - name: Verify MSBuild Path
       run: |
-        dir "C:\Program Files (x86)\Windows Kits\10\bin\x86"
-
-    - name: Set WDK Path
-      run: |
-        echo "C:\Program Files (x86)\Windows Kits\10\bin\x86" | Out-File -Append -FilePath $env:GITHUB_PATH
+        echo $env:MSBUILD_PATH
+        & $env:MSBUILD_PATH /version
 
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v3
@@ -67,26 +52,16 @@ jobs:
         languages: ${{ matrix.language }}
         build-mode: ${{ matrix.build-mode }}
 
-    - name: Setup MSBuild
-      uses: microsoft/setup-msbuild@v1
-      with:
-        vs-version: '2022'
-        msbuild-architecture: 'x64'
-
-    - name: Verify MSBuild Path
-      run: |
-        where msbuild
-
     - name: Build Solution with MSBuild
       run: |
-        "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\MSBuild\Current\Bin\MSBuild.exe" Drivers.sln /t:PM40Driver /p:Configuration=Release /p:Platform=x64 /m
+        & $env:MSBUILD_PATH Drivers.sln /t:PM40Driver /p:Configuration=Release /p:Platform=x64 /m
 
     - name: Create CodeQL Database
       run: |
         & "C:\hostedtoolcache\windows\CodeQL\2.20.3\x64\codeql\codeql.exe" database create codeql-database `
           --language=cpp `
           --source-root=. `
-          --command="C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\MSBuild\Current\Bin\MSBuild.exe Drivers.sln /p:Configuration=Release /p:Platform=x64" `
+          --command="$env:MSBUILD_PATH Drivers.sln /p:Configuration=Release /p:Platform=x64" `
           --verbose
 
     - name: Analyze with CodeQL
