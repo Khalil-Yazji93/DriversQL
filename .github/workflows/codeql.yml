@@ -76,10 +76,6 @@ jobs:
       run: |
         dir "C:\Program Files (x86)\Windows Kits\10\bin\x86"
 
-    - name: Verify MSBuild Tools
-      run: |
-        Get-ChildItem "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\MSBuild\Microsoft\VC" | ForEach-Object { dir $_.FullName }
-
     - name: Set WDK Path
       run: |
         echo "C:\Program Files (x86)\Windows Kits\10\bin\x86" | Out-File -Append -FilePath $env:GITHUB_PATH
