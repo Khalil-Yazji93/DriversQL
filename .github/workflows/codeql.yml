@@ -70,7 +70,7 @@ jobs:
           --add Microsoft.VisualStudio.Component.VC.Llvm.Clang `
           --add Microsoft.VisualStudio.Component.Windows10SDK.19041 `
           --add Microsoft.VisualStudio.Workload.WindowsDriverDevelopment `
-          --quiet --wait
+          --add Microsoft.Component.MSBuild `
 
     - name: Verify WDK Installation
       run: |
