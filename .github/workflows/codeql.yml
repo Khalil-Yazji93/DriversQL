@@ -37,7 +37,13 @@ jobs:
       run: |
         $vsInstallerPath = "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vs_installer.exe"
         if (Test-Path $vsInstallerPath) {
-          Start-Process -FilePath $vsInstallerPath -ArgumentList "modify", "--add", "Microsoft.VisualStudio.Component.Windows10SDK.19041", "--add", "Microsoft.VisualStudio.Component.WDK", "--quiet", "--wait", "--norestart" -NoNewWindow -Wait
+          Start-Process -FilePath $vsInstallerPath -ArgumentList "modify", `
+            "--add", "Microsoft.VisualStudio.Component.Windows10SDK.19041", `
+            "--add", "Microsoft.VisualStudio.Component.WDK", `
+            "--add", "Microsoft.VisualStudio.Component.WDK-VisualStudio", `
+            "--add", "Microsoft.VisualStudio.Component.WDK-ARM", `
+            "--add", "Microsoft.VisualStudio.Component.WDK-ARM64", `
+            "--quiet", "--wait", "--norestart" -NoNewWindow -Wait
         } else {
           Write-Error "Visual Studio Installer not found at $vsInstallerPath"
           exit 1
@@ -50,10 +56,22 @@ jobs:
         $sdkRoot = "C:\Program Files (x86)\Windows Kits\10\bin"
         $latestVersion = Get-ChildItem $sdkRoot | Where-Object { $_.PSIsContainer } | Sort-Object Name -Descending | Select-Object -First 1
         if ($latestVersion) {
-          $env:Path += ";$($sdkRoot)\$($latestVersion.Name)\x86"
+          $env:Path += ";$($sdkRoot)\$($latestVersion.Name)\x86;$($sdkRoot)\$($latestVersion.Name)\x64"
           echo "PATH=$env:Path" | Out-File -Append -FilePath $env:GITHUB_ENV
         } else {
           Write-Error "No Windows SDK version found in $sdkRoot"
+          exit 1
+        }
+
+    # Rebuild INF Verification Tool Cache
+    - name: Rebuild INF Verification Tool Cache
+      shell: pwsh
+      run: |
+        $infVerifPath = Get-ChildItem -Path "C:\Program Files (x86)\Windows Kits\10\bin" -Recurse -Filter "InfVerif.dll" | Select-Object -First 1
+        if ($infVerifPath) {
+          regsvr32 /s $infVerifPath.FullName
+        } else {
+          Write-Error "InfVerif.dll not found."
           exit 1
         }
 
