@@ -22,26 +22,16 @@ jobs:
       fail-fast: false
       matrix:
         include:
-        - language: c-cpp
-          build-mode: manual
-        - language: csharp
-          build-mode: none
+          - language: c-cpp
+            build-mode: manual
+          - language: csharp
+            build-mode: none
 
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    # Install Windows 10 SDK (19041) using Visual Studio Installer
-    - name: Install Windows 10 SDK via Visual Studio Installer
-      run: |
-        $vsInstallerPath = "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vs_installer.exe"
-        if (Test-Path $vsInstallerPath) {
-          Start-Process -FilePath $vsInstallerPath -ArgumentList "modify", "--add", "Microsoft.VisualStudio.Component.Windows10SDK.19041", "--quiet", "--wait", "--norestart" -Wait
-        } else {
-          Write-Error "Visual Studio Installer not found at $vsInstallerPath"
-          exit 1
-        }
-
+    # Install Windows SDK and WDK
     - name: Install Windows SDK and Driver Kit
       shell: pwsh
       run: |
@@ -50,12 +40,22 @@ jobs:
           Start-Process -FilePath $vsInstallerPath -ArgumentList "modify", "--add", "Microsoft.VisualStudio.Component.Windows10SDK.19041", "--add", "Microsoft.VisualStudio.Component.WDK", "--quiet", "--wait", "--norestart" -NoNewWindow -Wait
         } else {
           Write-Error "Visual Studio Installer not found at $vsInstallerPath"
+          exit 1
         }
 
-   
+    # Dynamically Add Windows SDK tools to PATH
     - name: Add Windows SDK tools to PATH
+      shell: pwsh
       run: |
-        $env:Path += ";C:\Program Files (x86)\Windows Kits\10\bin\10.0.26100.0\x86"
+        $sdkRoot = "C:\Program Files (x86)\Windows Kits\10\bin"
+        $latestVersion = Get-ChildItem $sdkRoot | Where-Object { $_.PSIsContainer } | Sort-Object Name -Descending | Select-Object -First 1
+        if ($latestVersion) {
+          $env:Path += ";$($sdkRoot)\$($latestVersion.Name)\x86"
+          echo "PATH=$env:Path" | Out-File -Append -FilePath $env:GITHUB_ENV
+        } else {
+          Write-Error "No Windows SDK version found in $sdkRoot"
+          exit 1
+        }
 
     - name: Verify Visual Studio Installation
       run: |
@@ -63,13 +63,19 @@ jobs:
 
     - name: Locate MSBuild
       id: locate-msbuild
+      shell: pwsh
       run: |
-        $msbuildPath = & "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -requires Microsoft.Component.MSBuild -find "MSBuild\\**\\Bin\\MSBuild.exe"
-        echo "MSBUILD_PATH=$msbuildPath" | Out-File -Append -FilePath $env:GITHUB_ENV
+        $msbuildPath = & "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -requires Microsoft.Component.MSBuild -find "MSBuild\**\Bin\MSBuild.exe"
+        if ($msbuildPath) {
+          echo "MSBUILD_PATH=$msbuildPath" | Out-File -Append -FilePath $env:GITHUB_ENV
+        } else {
+          Write-Error "MSBuild not found."
+          exit 1
+        }
 
     - name: Verify MSBuild Path
       run: |
-        echo $env:MSBUILD_PATH
+        echo "MSBuild Path: $env:MSBUILD_PATH"
         & $env:MSBUILD_PATH /version
 
     - name: Initialize CodeQL
@@ -79,10 +85,12 @@ jobs:
         build-mode: ${{ matrix.build-mode }}
 
     - name: Build Solution with MSBuild
+      if: matrix.language == 'c-cpp'
       run: |
         & $env:MSBUILD_PATH Drivers.sln /t:PM40Driver /p:Configuration=Release /p:Platform=x64 /m
 
     - name: Create CodeQL Database
+      if: matrix.language == 'c-cpp'
       run: |
         & "C:\hostedtoolcache\windows\CodeQL\2.20.3\x64\codeql\codeql.exe" database create codeql-database `
           --language=cpp `
