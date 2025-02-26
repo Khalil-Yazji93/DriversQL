@@ -69,9 +69,6 @@ jobs:
           exit 1
         }
 
- 
-
-
     - name: Verify Visual Studio Installation
       run: |
         & "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" -all -prerelease -products * -format json
@@ -93,6 +90,17 @@ jobs:
         echo "MSBuild Path: $env:MSBUILD_PATH"
         & $env:MSBUILD_PATH /version
 
+    - name: Determine CodeQL Path
+      shell: pwsh
+      run: |
+        $codeqlPath = Get-ChildItem "C:\hostedtoolcache\windows\CodeQL\*\x64\codeql\codeql.exe" | Sort-Object FullName -Descending | Select-Object -First 1 -ExpandProperty FullName
+        if ($codeqlPath) {
+          echo "CODEQL_PATH=$codeqlPath" | Out-File -Append -FilePath $env:GITHUB_ENV
+        } else {
+          Write-Error "CodeQL executable not found."
+          exit 1
+        }
+
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v3
       with:
@@ -107,7 +115,7 @@ jobs:
     - name: Create CodeQL Database
       if: matrix.language == 'c-cpp'
       run: |
-        & "C:\hostedtoolcache\windows\CodeQL\2.20.3\x64\codeql\codeql.exe" database create codeql-database `
+        & "$env:CODEQL_PATH" database create codeql-database `
           --language=cpp `
           --source-root=. `
           --command="`"$env:MSBUILD_PATH`" Drivers.sln /t:PM40Driver /p:Configuration=Release /p:Platform=x64" `
