@@ -49,6 +49,12 @@ jobs:
           exit 1
         }
 
+    # Verify Windows SDK installation
+    - name: Verify Windows SDK Installation
+      shell: pwsh
+      run: |
+        Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin" -Recurse
+
     # Dynamically Add Windows SDK tools to PATH
     - name: Add Windows SDK tools to PATH
       shell: pwsh
@@ -63,15 +69,31 @@ jobs:
           exit 1
         }
 
-    # Rebuild INF Verification Tool Cache
+    # Rebuild INF Verification Tool Cache with improved logic
     - name: Rebuild INF Verification Tool Cache
       shell: pwsh
       run: |
-        $infVerifPath = Get-ChildItem -Path "C:\Program Files (x86)\Windows Kits\10\bin" -Recurse -Filter "InfVerif.dll" | Select-Object -First 1
+        Write-Output "Searching for InfVerif.dll..."
+        $sdkRoot = "C:\Program Files (x86)\Windows Kits\10\bin"
+        $infVerifPath = Get-ChildItem -Path $sdkRoot -Recurse -Filter "InfVerif.dll" -ErrorAction SilentlyContinue | Select-Object -First 1
+        
         if ($infVerifPath) {
+          Write-Output "Found InfVerif.dll at $($infVerifPath.FullName)"
           regsvr32 /s $infVerifPath.FullName
         } else {
-          Write-Error "InfVerif.dll not found."
+          Write-Output "InfVerif.dll not found in $sdkRoot. Checking alternative locations..."
+          $altPaths = @("C:\Program Files (x86)\Windows Kits\10\bin\x64", "C:\Program Files (x86)\Windows Kits\10\bin\x86")
+          foreach ($path in $altPaths) {
+            if (Test-Path $path) {
+              $infVerifPath = Get-ChildItem -Path $path -Filter "InfVerif.dll" -ErrorAction SilentlyContinue | Select-Object -First 1
+              if ($infVerifPath) {
+                Write-Output "Found InfVerif.dll in fallback location: $($infVerifPath.FullName)"
+                regsvr32 /s $infVerifPath.FullName
+                exit 0
+              }
+            }
+          }
+          Write-Error "InfVerif.dll not found in any known locations."
           exit 1
         }
 
