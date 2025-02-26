@@ -74,28 +74,24 @@ jobs:
       shell: pwsh
       run: |
         Write-Output "Searching for InfVerif.dll..."
+
         $sdkRoot = "C:\Program Files (x86)\Windows Kits\10\bin"
-        $infVerifPath = Get-ChildItem -Path $sdkRoot -Recurse -Filter "InfVerif.dll" -ErrorAction SilentlyContinue | Select-Object -First 1
-        
-        if ($infVerifPath) {
-          Write-Output "Found InfVerif.dll at $($infVerifPath.FullName)"
-          regsvr32 /s $infVerifPath.FullName
-        } else {
-          Write-Output "InfVerif.dll not found in $sdkRoot. Checking alternative locations..."
-          $altPaths = @("C:\Program Files (x86)\Windows Kits\10\bin\x64", "C:\Program Files (x86)\Windows Kits\10\bin\x86")
-          foreach ($path in $altPaths) {
-            if (Test-Path $path) {
-              $infVerifPath = Get-ChildItem -Path $path -Filter "InfVerif.dll" -ErrorAction SilentlyContinue | Select-Object -First 1
-              if ($infVerifPath) {
-                Write-Output "Found InfVerif.dll in fallback location: $($infVerifPath.FullName)"
-                regsvr32 /s $infVerifPath.FullName
-                exit 0
-              }
-            }
+        $installedSDKs = Get-ChildItem -Path $sdkRoot -Directory | Sort-Object Name -Descending
+
+        $infVerifPath = $null
+        foreach ($sdkVersion in $installedSDKs) {
+          $searchPath = "$sdkRoot\$($sdkVersion.Name)"
+          $infVerifPath = Get-ChildItem -Path $searchPath -Recurse -Filter "InfVerif.dll" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if ($infVerifPath) {
+            Write-Output "Found InfVerif.dll in $($infVerifPath.FullName)"
+            regsvr32 /s $infVerifPath.FullName
+            exit 0
           }
-          Write-Error "InfVerif.dll not found in any known locations."
-          exit 1
         }
+
+        Write-Error "InfVerif.dll not found in any installed Windows Kits."
+        exit 1
+
 
     - name: Verify Visual Studio Installation
       run: |
