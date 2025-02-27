@@ -1,3 +1,14 @@
+# For most projects, this workflow file will not need changing; you simply need
+# to commit it to your repository.
+#
+# You may wish to alter this file to override the set of languages analyzed,
+# or to provide custom queries or build logic.
+#
+# ******** NOTE ********
+# We have attempted to detect the languages in your repository. Please check
+# the `language` matrix defined below to confirm you have the correct set of
+# supported CodeQL languages.
+#
 name: "CodeQL Advanced"
 
 on:
@@ -11,10 +22,20 @@ on:
 jobs:
   analyze:
     name: Analyze (${{ matrix.language }})
+    # Runner size impacts CodeQL analysis time. To learn more, please see:
+    #   - https://gh.io/recommended-hardware-resources-for-running-codeql
+    #   - https://gh.io/supported-runners-and-hardware-resources
+    #   - https://gh.io/using-larger-runners (GitHub.com only)
+    # Consider using larger runners or machines with greater resources for possible analysis time improvements.
     runs-on: windows-latest
     permissions:
+      # required for all workflows
       security-events: write
+
+      # required to fetch internal or private CodeQL packs
       packages: read
+
+      # only required for workflows in private repositories
       actions: read
       contents: read
 
@@ -22,94 +43,57 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - language: c-cpp
-            build-mode: manual
-          - language: csharp
-            build-mode: none
-
+        - language: c-cpp
+          build-mode: manual
+        - language: csharp
+          build-mode: none
+        # CodeQL supports the following values keywords for 'language': 'c-cpp', 'csharp', 'go', 'java-kotlin', 'javascript-typescript', 'python', 'ruby', 'swift'
+        # Use `c-cpp` to analyze code written in C, C++ or both
+        # Use 'java-kotlin' to analyze code written in Java, Kotlin or both
+        # Use 'javascript-typescript' to analyze code written in JavaScript, TypeScript or both
+        # To learn more about changing the languages that are analyzed or customizing the build mode for your analysis,
+        # see https://docs.github.com/en/code-security/code-scanning/creating-an-advanced-setup-for-code-scanning/customizing-your-advanced-setup-for-code-scanning.
+        # If you are analyzing a compiled language, you can modify the 'build-mode' for that language to customize how
+        # your codebase is analyzed, see https://docs.github.com/en/code-security/code-scanning/creating-an-advanced-setup-for-code-scanning/codeql-code-scanning-for-compiled-languages
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Install Windows SDK and Driver Kit
-      shell: pwsh
-      run: |
-        $vsInstallerPath = "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vs_installer.exe"
-        if (Test-Path $vsInstallerPath) {
-          Start-Process -FilePath $vsInstallerPath -ArgumentList "modify", `
-            "--add", "Microsoft.VisualStudio.Component.Windows10SDK.19041", `
-            "--add", "Microsoft.VisualStudio.Component.Windows10SDK.20348", `
-            "--add", "Microsoft.VisualStudio.Component.Windows10SDK.22000", `
-            "--add", "Microsoft.VisualStudio.Component.Windows11SDK.22621", `
-            "--add", "Microsoft.VisualStudio.Component.WindowsDriverKit", `
-            "--add", "Microsoft.VisualStudio.Component.WDK", `
-            "--quiet", "--wait", "--norestart" -NoNewWindow -Wait
-        } else {
-          Write-Error "Visual Studio Installer not found at $vsInstallerPath"
-          exit 1
-        }
+    # Initializes the CodeQL tools for scanning.
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v3
+      with:
+        languages: ${{ matrix.language }}
+        build-mode: ${{ matrix.build-mode }}
+        # If you wish to specify custom queries, you can do so here or in a config file.
+        # By default, queries listed here will override any specified in a config file.
+        # Prefix the list here with "+" to use these queries and those in the config file.
 
-    - name: Verify Windows SDK Installation
-      shell: pwsh
-      run: |
-        if (!(Test-Path "C:\Program Files (x86)\Windows Kits\10\bin")) {
-          Write-Error "Windows SDK not installed correctly."
-          exit 1
-        }
-        Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin" -Recurse
+        # For more details on CodeQL's query packs, refer to: https://docs.github.com/en/code-security/code-scanning/automatically-scanning-your-code-for-vulnerabilities-and-errors/configuring-code-scanning#using-queries-in-ql-packs
+        # queries: security-extended,security-and-quality
 
-    - name: Ensure InfVerif.dll is available
-      shell: pwsh
-      run: |
-        $sdkRoot = "C:\Program Files (x86)\Windows Kits\10\bin"
-        $sdkVersions = Get-ChildItem -Path $sdkRoot -Directory | Sort-Object Name -Descending
-        $sdkToolsPaths = $sdkVersions | ForEach-Object { "$sdkRoot\$_\x64", "$sdkRoot\$_\x86" }
-        
-        $infVerifPath = $sdkToolsPaths | Where-Object { Test-Path "$_\InfVerif.dll" } | Select-Object -First 1
-        
-        if (-not $infVerifPath) {
-          Write-Error "InfVerif.dll is missing in all Windows SDK bin directories."
-          Write-Host "Available SDK Versions:"
-          $sdkVersions | ForEach-Object { Write-Host "$sdkRoot\$_" }
-          Write-Host "Listing all SDK Tools:"
-          Get-ChildItem -Path "$sdkRoot" -Recurse -ErrorAction SilentlyContinue | Select-String "InfVerif.dll"
-          exit 1
-        }
+    # If the analyze step fails for one of the languages you are analyzing with
+    # "We were unable to automatically build your code", modify the matrix above
+    # to set the build mode to "manual" for that language. Then modify this step
+    # to build your code.
+    # ℹ️ Command-line programs to run using the OS shell.
+    # 📚 See https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idstepsrun
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v1  # ✅ Ensures MSBuild is available
 
-        echo "INF_VERIF_PATH=$infVerifPath\InfVerif.dll" | Out-File -Append -FilePath $env:GITHUB_ENV
-
-    - name: Locate MSBuild
-      id: locate-msbuild
-      shell: pwsh
-      run: |
-        $msbuildPath = & "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -requires Microsoft.Component.MSBuild -find "MSBuild\**\Bin\MSBuild.exe"
-        if ($msbuildPath) {
-          echo "MSBUILD_PATH=$msbuildPath" | Out-File -Append -FilePath $env:GITHUB_ENV
-        } else {
-          Write-Error "MSBuild not found."
-          exit 1
-        }
+    - name: Restore NuGet Packages (if needed)
+      run: nuget restore Drivers.sln
 
     - name: Build Solution with MSBuild
-      if: matrix.language == 'c-cpp'
-      run: |
-        & $env:MSBUILD_PATH Drivers.sln /t:PM40Driver /p:Configuration=Release /p:Platform=x64 /m
+      run: msbuild Drivers.sln /t:PM40Driver /p:Configuration=Release /p:Platform=x64 /m
 
-    - name: Create CodeQL Database
-      if: matrix.language == 'c-cpp'
-      run: |
-        & "$env:CODEQL_PATH" database create codeql-database `
-          --language=cpp `
-          --source-root=. `
-          --command="`"$env:MSBUILD_PATH`" Drivers.sln /t:PM40Driver /p:Configuration=Release /p:Platform=x64" `
-          --verbose
-
-    - name: Analyze with CodeQL
+    - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3
+      with:
+        category: "/language:${{matrix.language}}"
 
-    - name: Upload CodeQL Logs (for debugging)
-      if: failure()
+    - name: Upload CodeQL Logs
       uses: actions/upload-artifact@v4
       with:
-        name: codeql-logs
-        path: D:\a\DriversQL\DriversQL\codeql-database\log
+          name: codeql-logs
+          path: ${{ github.workspace }}/codeql-database/log
