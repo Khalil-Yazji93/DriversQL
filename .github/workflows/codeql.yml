@@ -39,10 +39,8 @@ jobs:
         if (Test-Path $vsInstallerPath) {
           Start-Process -FilePath $vsInstallerPath -ArgumentList "modify", `
             "--add", "Microsoft.VisualStudio.Component.Windows10SDK.19041", `
+            "--add", "Microsoft.VisualStudio.Component.WindowsDriverKit", `
             "--add", "Microsoft.VisualStudio.Component.WDK", `
-            "--add", "Microsoft.VisualStudio.Component.WDK-VisualStudio", `
-            "--add", "Microsoft.VisualStudio.Component.WDK-ARM", `
-            "--add", "Microsoft.VisualStudio.Component.WDK-ARM64", `
             "--quiet", "--wait", "--norestart" -NoNewWindow -Wait
         } else {
           Write-Error "Visual Studio Installer not found at $vsInstallerPath"
@@ -53,6 +51,10 @@ jobs:
     - name: Verify Windows SDK Installation
       shell: pwsh
       run: |
+        if (!(Test-Path "C:\Program Files (x86)\Windows Kits\10\bin")) {
+          Write-Error "Windows SDK not installed correctly."
+          exit 1
+        }
         Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin" -Recurse
 
     # Dynamically Add Windows SDK tools to PATH
@@ -62,10 +64,19 @@ jobs:
         $sdkRoot = "C:\Program Files (x86)\Windows Kits\10\bin"
         $latestVersion = Get-ChildItem $sdkRoot | Where-Object { $_.PSIsContainer } | Sort-Object Name -Descending | Select-Object -First 1
         if ($latestVersion) {
-          $env:Path += ";$($sdkRoot)\$($latestVersion.Name)\x86;$($sdkRoot)\$($latestVersion.Name)\x64"
-          echo "PATH=$env:Path" | Out-File -Append -FilePath $env:GITHUB_ENV
+          echo "SDK_TOOLS_PATH=$($sdkRoot)\$($latestVersion.Name)\x64" | Out-File -Append -FilePath $env:GITHUB_ENV
         } else {
           Write-Error "No Windows SDK version found in $sdkRoot"
+          exit 1
+        }
+
+    # Ensure InfVerif.dll is available
+    - name: Ensure InfVerif.dll is Available
+      shell: pwsh
+      run: |
+        $infVerifPath = "$env:SDK_TOOLS_PATH\InfVerif.dll"
+        if (!(Test-Path $infVerifPath)) {
+          Write-Error "InfVerif.dll is missing in SDK tools path"
           exit 1
         }
 
