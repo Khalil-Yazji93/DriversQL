@@ -31,7 +31,6 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    # Install Windows SDK and WDK
     - name: Install Windows SDK and Driver Kit
       shell: pwsh
       run: |
@@ -50,7 +49,6 @@ jobs:
           exit 1
         }
 
-    # Verify Windows SDK installation
     - name: Verify Windows SDK Installation
       shell: pwsh
       run: |
@@ -60,26 +58,6 @@ jobs:
         }
         Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin" -Recurse
 
-    # Dynamically Add Windows SDK tools to PATH
-    - name: Add Windows SDK tools to PATH
-      shell: pwsh
-      run: |
-        $sdkRoot = "C:\Program Files (x86)\Windows Kits\10\bin"
-        $latestVersion = Get-ChildItem $sdkRoot | Where-Object { $_.PSIsContainer } | Sort-Object Name -Descending | Select-Object -First 1
-        if ($latestVersion) {
-          echo "SDK_TOOLS_PATH=$($sdkRoot)\$($latestVersion.Name)\x64" | Out-File -Append -FilePath $env:GITHUB_ENV
-        } else {
-          Write-Error "No Windows SDK version found in $sdkRoot"
-          exit 1
-        }
-
-    # Debugging: Check if InfVerif.dll Exists
-    - name: Debug Windows SDK Contents
-      shell: pwsh
-      run: |
-        Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin" -Recurse -Filter "InfVerif.dll"
-
-    # Ensure InfVerif.dll is available
     - name: Ensure InfVerif.dll is available
       shell: pwsh
       run: |
@@ -100,11 +78,6 @@ jobs:
 
         echo "INF_VERIF_PATH=$infVerifPath\InfVerif.dll" | Out-File -Append -FilePath $env:GITHUB_ENV
 
-    
-    - name: Verify Visual Studio Installation
-      run: |
-        & "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" -all -prerelease -products * -format json
-
     - name: Locate MSBuild
       id: locate-msbuild
       shell: pwsh
@@ -116,28 +89,6 @@ jobs:
           Write-Error "MSBuild not found."
           exit 1
         }
-
-    - name: Verify MSBuild Path
-      run: |
-        echo "MSBuild Path: $env:MSBUILD_PATH"
-        & $env:MSBUILD_PATH /version
-
-    - name: Determine CodeQL Path
-      shell: pwsh
-      run: |
-        $codeqlPath = Get-ChildItem "C:\hostedtoolcache\windows\CodeQL\*\x64\codeql\codeql.exe" | Sort-Object FullName -Descending | Select-Object -First 1 -ExpandProperty FullName
-        if ($codeqlPath) {
-          echo "CODEQL_PATH=$codeqlPath" | Out-File -Append -FilePath $env:GITHUB_ENV
-        } else {
-          Write-Error "CodeQL executable not found."
-          exit 1
-        }
-
-    - name: Initialize CodeQL
-      uses: github/codeql-action/init@v3
-      with:
-        languages: ${{ matrix.language }}
-        build-mode: ${{ matrix.build-mode }}
 
     - name: Build Solution with MSBuild
       if: matrix.language == 'c-cpp'
