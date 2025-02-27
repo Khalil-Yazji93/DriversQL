@@ -83,19 +83,23 @@ jobs:
     - name: Ensure InfVerif.dll is available
       shell: pwsh
       run: |
-        $sdkToolsPaths = @(
-          "C:\Program Files (x86)\Windows Kits\10\bin\x64",
-          "C:\Program Files (x86)\Windows Kits\10\bin\x86"
-        )
-    
+        $sdkRoot = "C:\Program Files (x86)\Windows Kits\10\bin"
+        $sdkVersions = Get-ChildItem -Path $sdkRoot -Directory | Sort-Object Name -Descending
+        $sdkToolsPaths = $sdkVersions | ForEach-Object { "$sdkRoot\$_\x64", "$sdkRoot\$_\x86" }
+        
         $infVerifPath = $sdkToolsPaths | Where-Object { Test-Path "$_\InfVerif.dll" } | Select-Object -First 1
-    
+        
         if (-not $infVerifPath) {
-          Write-Error "InfVerif.dll is missing in Windows SDK bin directories"
+          Write-Error "InfVerif.dll is missing in all Windows SDK bin directories."
+          Write-Host "Available SDK Versions:"
+          $sdkVersions | ForEach-Object { Write-Host "$sdkRoot\$_" }
+          Write-Host "Listing all SDK Tools:"
+          Get-ChildItem -Path "$sdkRoot" -Recurse -ErrorAction SilentlyContinue | Select-String "InfVerif.dll"
           exit 1
         }
-    
+
         echo "INF_VERIF_PATH=$infVerifPath\InfVerif.dll" | Out-File -Append -FilePath $env:GITHUB_ENV
+
     
     - name: Verify Visual Studio Installation
       run: |
